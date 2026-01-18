@@ -40,8 +40,9 @@ export class ZohoExpense implements INodeType {
 					loadOptionsMethod: 'getOrganizations',
 				},
 				default: '',
-				required: true,
-				description: 'The organization to operate on. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+				required: false,
+				description: 'The organization to operate on. Leave empty to use the default from credentials. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+				hint: 'Overrides the Organization ID set in credentials',
 			},
 			// Resource
 			{

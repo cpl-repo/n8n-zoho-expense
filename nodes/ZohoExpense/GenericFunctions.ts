@@ -23,18 +23,23 @@ export async function zohoExpenseApiRequest(
 		? 'https://www.zohoapis.ca'
 		: `https://www.zohoapis.${dataCenter}`;
 
-	// Try to get organization ID from node parameters
+	// Get organization ID - node parameter takes priority over credential
 	let organizationId: string | undefined;
+
+	// First try to get from node parameters (allows override)
 	try {
-		// Check if we're in load options context (has getCurrentNodeParameter)
 		if ('getCurrentNodeParameter' in this) {
 			organizationId = (this as ILoadOptionsFunctions).getCurrentNodeParameter('organizationId') as string;
 		} else {
-			// Execute context - use getNodeParameter
 			organizationId = (this as IExecuteFunctions).getNodeParameter('organizationId', 0, '') as string;
 		}
 	} catch {
-		// Organization ID not available, continue without it
+		// Node parameter not available
+	}
+
+	// Fall back to credential if node parameter is empty
+	if (!organizationId && credentials.organizationId) {
+		organizationId = credentials.organizationId as string;
 	}
 
 	const headers: IDataObject = {};

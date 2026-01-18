@@ -90,6 +90,14 @@ export class ZohoExpenseOAuth2Api implements ICredentialType {
 			type: 'hidden',
 			default: 'body',
 		},
+		{
+			displayName: 'Organization ID',
+			name: 'organizationId',
+			type: 'string',
+			default: '',
+			description: 'Default organization ID to use for all requests. Can be overridden in individual node operations.',
+			placeholder: 'e.g., 10234695',
+		},
 	];
 
 	async preAuthentication(this: IHttpRequestHelper, credentials: ICredentialDataDecryptedObject) {
