@@ -168,12 +168,6 @@ export class ZohoExpense implements INodeType {
 						action: 'Get many expense reports',
 					},
 					{
-						name: 'Recall',
-						value: 'recall',
-						description: 'Recall a submitted expense report',
-						action: 'Recall an expense report',
-					},
-					{
 						name: 'Reject',
 						value: 'reject',
 						description: 'Reject an expense report',
@@ -1111,7 +1105,7 @@ export class ZohoExpense implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['expenseReport'],
-						operation: ['get', 'delete', 'update', 'submit', 'approve', 'reject', 'recall'],
+						operation: ['get', 'delete', 'update', 'submit', 'approve', 'reject'],
 					},
 				},
 				description: 'Unique identifier of the expense report',
@@ -1820,16 +1814,16 @@ export class ZohoExpense implements INodeType {
 				const response = await zohoExpenseApiRequest.call(
 					this,
 					'GET',
-					'/customers',
+					'/contacts',
 				);
 
-				const customers = response.customers as IDataObject[];
+				const customers = response.contacts as IDataObject[];
 
 				if (customers) {
 					for (const customer of customers) {
 						returnData.push({
-							name: customer.customer_name as string,
-							value: customer.customer_id as string,
+							name: customer.contact_name as string,
+							value: customer.contact_id as string,
 						});
 					}
 				}
@@ -1886,21 +1880,25 @@ export class ZohoExpense implements INodeType {
 			async getAccounts(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
 
-				const response = await zohoExpenseApiRequest.call(
-					this,
-					'GET',
-					'/settings/accounts',
-				);
+				try {
+					const response = await zohoExpenseApiRequest.call(
+						this,
+						'GET',
+						'/chartofaccounts',
+					);
 
-				const accounts = response.accounts as IDataObject[];
+					const accounts = response.chartofaccounts as IDataObject[];
 
-				if (accounts) {
-					for (const account of accounts) {
-						returnData.push({
-							name: account.account_name as string,
-							value: account.account_id as string,
-						});
+					if (accounts) {
+						for (const account of accounts) {
+							returnData.push({
+								name: account.account_name as string,
+								value: account.account_id as string,
+							});
+						}
 					}
+				} catch {
+					// Endpoint may not be available, return empty list
 				}
 
 				return returnData;
@@ -2416,22 +2414,6 @@ export class ZohoExpense implements INodeType {
 						responseData = response;
 					}
 
-					// ----------------------------------
-					//         expenseReport:recall
-					// ----------------------------------
-					if (operation === 'recall') {
-						const reportId = this.getNodeParameter('reportId', i) as string;
-
-						const response = await zohoExpenseApiRequest.call(
-							this,
-							'POST',
-							`/expensereports/${reportId}/recall`,
-							{},
-							{},
-						);
-
-						responseData = response;
-					}
 				}
 
 				// ========================================
