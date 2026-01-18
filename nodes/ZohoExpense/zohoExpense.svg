@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="zohoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F9B21D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E57C23;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="64" fill="url(#zohoGradient)"/>
+  <g fill="#FFFFFF">
+    <path d="M128 192h256v32H128zM128 256h256v32H128zM128 320h192v32H128z"/>
+    <circle cx="400" cy="336" r="48"/>
+    <path d="M376 336l16 16 32-32" stroke="#E57C23" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="256" y="140" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#FFFFFF" text-anchor="middle">ZOHO</text>
+</svg>

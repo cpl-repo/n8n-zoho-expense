@@ -1,0 +1,22 @@
+{
+	"node": "n8n-nodes-base.zohoExpense",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Finance & Accounting"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://www.zoho.com/expense/api/v1/"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://www.zoho.com/expense/api/v1/"
+			}
+		]
+	},
+	"alias": ["zoho", "expense", "finance", "accounting", "reimbursement"],
+	"subcategories": {
+		"Finance & Accounting": ["Expense Management"]
+	}
+}
