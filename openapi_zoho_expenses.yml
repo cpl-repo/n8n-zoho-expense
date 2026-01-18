@@ -1,16 +1,132 @@
 openapi: 3.0.0
 info:
-  title: Expenses
-  description: An expense object allows you to maintain details of an expense.
+  title: Zoho Expense API
+  description: |
+    Complete API for Zoho Expense - manage expenses, reports, trips, users, organizations, and more.
+
+    Base URL: https://www.zohoapis.com/expense/v1
+
+    Rate Limits:
+    - 100 requests/minute per organization
+    - Daily limits vary by plan (1,000–10,000 requests)
   contact: {}
   version: 1.0.0
 servers:
   - url: https://www.zohoapis.com/expense/v1
     description: API Endpoint
 tags:
+  - name: organizations
+    description: Organization management
   - name: expenses
-    description: Expenses Module
+    description: Expense management
+  - name: expense-reports
+    description: Expense report management
+  - name: trips
+    description: Trip management
+  - name: users
+    description: User management
+  - name: currencies
+    description: Currency settings
+  - name: taxes
+    description: Tax settings
+  - name: expense-categories
+    description: Expense category management
+  - name: customers
+    description: Customer/Contact management
+  - name: projects
+    description: Project management
+
 paths:
+  # ==================== ORGANIZATIONS ====================
+  /organizations:
+    post:
+      tags:
+        - organizations
+      operationId: create_organization
+      summary: Create an organization
+      description: Create a new organization in Zoho Expense.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.orgsettings.CREATE
+    get:
+      tags:
+        - organizations
+      operationId: list_organizations
+      summary: List organizations
+      description: Get list of organizations the user has access to.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationsListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.orgsettings.READ
+
+  /organizations/{organization_id}:
+    parameters:
+      - name: organization_id
+        in: path
+        required: true
+        description: Unique identifier of the organization.
+        schema:
+          type: string
+        example: '10234695'
+    get:
+      tags:
+        - organizations
+      operationId: get_organization
+      summary: Get an organization
+      description: Retrieve details of a specific organization.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.orgsettings.READ
+    put:
+      tags:
+        - organizations
+      operationId: update_organization
+      summary: Update an organization
+      description: Update details of an organization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.orgsettings.UPDATE
+
+  # ==================== EXPENSES ====================
   /expenses:
     post:
       tags:
@@ -18,24 +134,32 @@ paths:
       operationId: create_expense
       summary: Create an expense
       description: Create a new expense.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/create-an-expense-request'
+              $ref: '#/components/schemas/CreateExpenseRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                receipt:
+                  type: string
+                  format: binary
+                  description: Receipt file to upload
       responses:
         '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/create-an-expense-response'
-      deprecated: false
+                $ref: '#/components/schemas/ExpenseResponse'
       security:
         - Zoho_Auth:
             - ZohoExpense.expense.CREATE
-    parameters:
-      - $ref: '#/components/parameters/organization_id'
+
   /reports/expensedetails:
     get:
       tags:
@@ -44,97 +168,81 @@ paths:
       summary: List all expenses
       description: List of all existing expenses.
       parameters:
+        - $ref: '#/components/parameters/organization_id'
         - name: status
           in: query
           description: Status of the expense report with which the expense is associated.
-          required: false
           schema:
             type: string
+            enum: [submitted, approved, reimbursed, rejected, draft]
           example: submitted
         - name: date_start
           in: query
-          description: Starting Date
-          required: false
+          description: Starting date (YYYY-MM-DD)
           schema:
             type: string
+            format: date
           example: '2015-12-31'
         - name: date_end
           in: query
-          description: Ending Date
-          required: false
+          description: Ending date (YYYY-MM-DD)
           schema:
             type: string
+            format: date
           example: '2016-01-31'
         - name: user_id
           in: query
           description: Unique ID for user.
-          required: false
           schema:
-            type: integer
-            format: int64
+            type: string
           example: '27927000001331015'
         - name: category_id
           in: query
           description: Unique ID for expense category.
-          required: false
           schema:
-            type: integer
-            format: int64
+            type: string
           example: '16367000000000400'
         - name: merchant_id
           in: query
           description: Unique ID for merchant.
-          required: false
           schema:
-            type: integer
-            format: int64
+            type: string
           example: '16367000000074027'
         - name: customer_id
           in: query
           description: Unique ID for the customer.
-          required: false
           schema:
-            type: integer
-            format: int64
+            type: string
           example: '27927000000075081'
         - name: project_id
           in: query
           description: Unique ID for the project.
-          required: false
           schema:
-            type: integer
-            format: int64
+            type: string
           example: '27927000001243001'
-        - name: page
-          in: query
-          description: Page number to be fetched. Default value is 1.
-          required: false
-          schema:
-            type: integer
-            default: 1
-          example: 1
-        - name: per_page
-          in: query
-          description: Number of records to be fetched per page. Default value is 200.
-          required: false
-          schema:
-            type: integer
-            default: 200
-          example: 200
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/list-all-expenses-response'
-      deprecated: false
+                $ref: '#/components/schemas/ExpensesListResponse'
       security:
         - Zoho_Auth:
             - ZohoExpense.expense.READ
-    parameters:
-      - $ref: '#/components/parameters/organization_id'
+
   /expenses/{expense_id}:
+    parameters:
+      - name: expense_id
+        in: path
+        required: true
+        description: Unique identifier of the expense.
+        schema:
+          type: string
+        example: '16367000000083065'
+      - $ref: '#/components/parameters/organization_id'
     put:
       tags:
         - expenses
@@ -145,18 +253,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/update-an-expense-request'
+              $ref: '#/components/schemas/UpdateExpenseRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/update-an-expense-response'
-      deprecated: false
+                $ref: '#/components/schemas/ExpenseResponse'
       security:
         - Zoho_Auth:
             - ZohoExpense.expense.UPDATE
+
+  /expenses/{expense_id}/merge:
     parameters:
       - name: expense_id
         in: path
@@ -166,7 +275,6 @@ paths:
           type: string
         example: '16367000000083065'
       - $ref: '#/components/parameters/organization_id'
-  /expenses/{expense_id}/merge:
     post:
       tags:
         - expenses
@@ -179,8 +287,7 @@ paths:
           in: query
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
           example: '16367000000083070'
       responses:
         '200':
@@ -188,20 +295,1458 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/merge-expenses-response'
-      deprecated: false
+                $ref: '#/components/schemas/MessageResponse'
       security:
         - Zoho_Auth:
             - ZohoExpense.expense.CREATE
+
+  # ==================== EXPENSE REPORTS ====================
+  /expensereports:
+    post:
+      tags:
+        - expense-reports
+      operationId: create_expense_report
+      summary: Create an expense report
+      description: Create a new expense report.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseReportRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseReportResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensereport.CREATE
+    get:
+      tags:
+        - expense-reports
+      operationId: list_expense_reports
+      summary: List all expense reports
+      description: List of all existing expense reports.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+        - name: filter_by
+          in: query
+          description: Filter by status (e.g., Status.Draft, Status.Submitted, Status.Approved)
+          schema:
+            type: string
+          example: Status.Submitted
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseReportsListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensereport.READ
+
+  /expensereports/{expense_report_id}:
     parameters:
-      - name: expense_id
+      - name: expense_report_id
         in: path
         required: true
-        description: Unique identifier of the expense.
+        description: Unique identifier of the expense report.
         schema:
           type: string
-        example: '16367000000083065'
+        example: '16367000000083075'
       - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - expense-reports
+      operationId: get_expense_report
+      summary: Get an expense report
+      description: Retrieve details of a specific expense report.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseReportResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensereport.READ
+    put:
+      tags:
+        - expense-reports
+      operationId: update_expense_report
+      summary: Update an expense report
+      description: Update details of an expense report.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExpenseReportRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseReportResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensereport.UPDATE
+    delete:
+      tags:
+        - expense-reports
+      operationId: delete_expense_report
+      summary: Delete an expense report
+      description: Delete an expense report.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensereport.DELETE
+
+  /expensereports/{expense_report_id}/submit:
+    parameters:
+      - name: expense_report_id
+        in: path
+        required: true
+        description: Unique identifier of the expense report.
+        schema:
+          type: string
+        example: '16367000000083075'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - expense-reports
+      operationId: submit_expense_report
+      summary: Submit an expense report
+      description: Submit an expense report for approval.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+                  description: Comments for the submission
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.approval.CREATE
+
+  /expensereports/{expense_report_id}/approve:
+    parameters:
+      - name: expense_report_id
+        in: path
+        required: true
+        description: Unique identifier of the expense report.
+        schema:
+          type: string
+        example: '16367000000083075'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - expense-reports
+      operationId: approve_expense_report
+      summary: Approve an expense report
+      description: Approve an expense report.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+                  description: Comments for the approval
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.approval.CREATE
+
+  /expensereports/{expense_report_id}/reject:
+    parameters:
+      - name: expense_report_id
+        in: path
+        required: true
+        description: Unique identifier of the expense report.
+        schema:
+          type: string
+        example: '16367000000083075'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - expense-reports
+      operationId: reject_expense_report
+      summary: Reject an expense report
+      description: Reject an expense report.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+                  description: Reason for rejection
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.approval.CREATE
+
+  /expensereports/{expense_report_id}/reimburse:
+    parameters:
+      - name: expense_report_id
+        in: path
+        required: true
+        description: Unique identifier of the expense report.
+        schema:
+          type: string
+        example: '16367000000083075'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - expense-reports
+      operationId: reimburse_expense_report
+      summary: Reimburse an expense report
+      description: Mark an expense report as reimbursed.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReimburseRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.approval.CREATE
+
+  /expensereports/{expense_report_id}/approvalhistory:
+    parameters:
+      - name: expense_report_id
+        in: path
+        required: true
+        description: Unique identifier of the expense report.
+        schema:
+          type: string
+        example: '16367000000083075'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - expense-reports
+      operationId: get_approval_history
+      summary: Get approval history
+      description: Get the approval history of an expense report.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalHistoryResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensereport.READ
+
+  # ==================== TRIPS ====================
+  /trips:
+    post:
+      tags:
+        - trips
+      operationId: create_trip
+      summary: Create a trip
+      description: Create a new trip request.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTripRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.triprequest.CREATE
+    get:
+      tags:
+        - trips
+      operationId: list_trips
+      summary: List all trips
+      description: List of all existing trips.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+        - name: filter_by
+          in: query
+          description: Filter trips by status
+          schema:
+            type: string
+            enum: [Status.Draft, Status.Submitted, Status.Approved, Status.Rejected, Status.Closed, Status.Cancelled]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripsListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.triprequest.READ
+
+  /trips/{trip_id}:
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        description: Unique identifier of the trip.
+        schema:
+          type: string
+        example: '16367000000123456'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - trips
+      operationId: get_trip
+      summary: Get a trip
+      description: Retrieve details of a specific trip.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.triprequest.READ
+    put:
+      tags:
+        - trips
+      operationId: update_trip
+      summary: Update a trip
+      description: Update details of a trip.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTripRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.triprequest.UPDATE
+    delete:
+      tags:
+        - trips
+      operationId: delete_trip
+      summary: Delete a trip
+      description: Delete a trip request.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.triprequest.DELETE
+
+  /trips/{trip_id}/approve:
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        description: Unique identifier of the trip.
+        schema:
+          type: string
+        example: '16367000000123456'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - trips
+      operationId: approve_trip
+      summary: Approve a trip
+      description: Approve a trip request.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+                  description: Comments for the approval
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.approval.CREATE
+
+  /trips/{trip_id}/reject:
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        description: Unique identifier of the trip.
+        schema:
+          type: string
+        example: '16367000000123456'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - trips
+      operationId: reject_trip
+      summary: Reject a trip
+      description: Reject a trip request.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+                  description: Reason for rejection
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.approval.CREATE
+
+  /trips/{trip_id}/cancel:
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        description: Unique identifier of the trip.
+        schema:
+          type: string
+        example: '16367000000123456'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - trips
+      operationId: cancel_trip
+      summary: Cancel a trip
+      description: Cancel an approved trip.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+                  description: Reason for cancellation
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.triprequest.CREATE
+
+  /trips/{trip_id}/close:
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        description: Unique identifier of the trip.
+        schema:
+          type: string
+        example: '16367000000123456'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - trips
+      operationId: close_trip
+      summary: Close a trip
+      description: Close an approved trip.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+                  description: Comments for closing
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.triprequest.CREATE
+
+  # ==================== USERS ====================
+  /users:
+    post:
+      tags:
+        - users
+      operationId: create_user
+      summary: Create a user
+      description: Create a new user in the organization.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.users.CREATE
+    get:
+      tags:
+        - users
+      operationId: list_users
+      summary: List users
+      description: List all users in the organization.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.users.READ
+
+  /users/{user_id}:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        description: Unique identifier of the user.
+        schema:
+          type: string
+        example: '27927000001331015'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - users
+      operationId: get_user
+      summary: Get a user
+      description: Retrieve details of a specific user.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.users.READ
+    put:
+      tags:
+        - users
+      operationId: update_user
+      summary: Update a user
+      description: Update details of a user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.users.UPDATE
+    delete:
+      tags:
+        - users
+      operationId: delete_user
+      summary: Delete a user
+      description: Delete a user from the organization.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.users.DELETE
+
+  /users/{user_id}/active:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        description: Unique identifier of the user.
+        schema:
+          type: string
+        example: '27927000001331015'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - users
+      operationId: activate_user
+      summary: Activate a user
+      description: Mark a user as active.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.users.CREATE
+
+  /users/{user_id}/inactive:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        description: Unique identifier of the user.
+        schema:
+          type: string
+        example: '27927000001331015'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - users
+      operationId: deactivate_user
+      summary: Deactivate a user
+      description: Mark a user as inactive.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.users.CREATE
+
+  /users/{user_id}/role/{role_id}:
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        description: Unique identifier of the user.
+        schema:
+          type: string
+        example: '27927000001331015'
+      - name: role_id
+        in: path
+        required: true
+        description: Unique identifier of the role.
+        schema:
+          type: string
+        example: '27927000000000003'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - users
+      operationId: assign_role_to_user
+      summary: Assign role to user
+      description: Assign a role to a user.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.users.CREATE
+
+  # ==================== CURRENCIES ====================
+  /settings/currencies:
+    post:
+      tags:
+        - currencies
+      operationId: create_currency
+      summary: Create a currency
+      description: Create a new currency.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCurrencyRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrencyResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.currency.CREATE
+    get:
+      tags:
+        - currencies
+      operationId: list_currencies
+      summary: List currencies
+      description: List all currencies.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrenciesListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.currency.READ
+
+  /settings/currencies/{currency_id}:
+    parameters:
+      - name: currency_id
+        in: path
+        required: true
+        description: Unique identifier of the currency.
+        schema:
+          type: string
+        example: '16367000000000097'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - currencies
+      operationId: get_currency
+      summary: Get a currency
+      description: Retrieve details of a specific currency.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrencyResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expense.READ
+    put:
+      tags:
+        - currencies
+      operationId: update_currency
+      summary: Update a currency
+      description: Update details of a currency.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCurrencyRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrencyResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.currency.UPDATE
+    delete:
+      tags:
+        - currencies
+      operationId: delete_currency
+      summary: Delete a currency
+      description: Delete a currency.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.currency.DELETE
+
+  # ==================== TAXES ====================
+  /settings/taxes:
+    post:
+      tags:
+        - taxes
+      operationId: create_tax
+      summary: Create a tax
+      description: Create a new tax.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaxRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.tax.CREATE
+    get:
+      tags:
+        - taxes
+      operationId: list_taxes
+      summary: List taxes
+      description: List all taxes.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxesListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.tax.READ
+
+  /settings/taxes/{tax_id}:
+    parameters:
+      - name: tax_id
+        in: path
+        required: true
+        description: Unique identifier of the tax.
+        schema:
+          type: string
+        example: '16367000000086001'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - taxes
+      operationId: get_tax
+      summary: Get a tax
+      description: Retrieve details of a specific tax.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.tax.READ
+    put:
+      tags:
+        - taxes
+      operationId: update_tax
+      summary: Update a tax
+      description: Update details of a tax.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaxRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.tax.UPDATE
+    delete:
+      tags:
+        - taxes
+      operationId: delete_tax
+      summary: Delete a tax
+      description: Delete a tax.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.tax.DELETE
+
+  /settings/taxgroups/{tax_group_id}:
+    parameters:
+      - name: tax_group_id
+        in: path
+        required: true
+        description: Unique identifier of the tax group.
+        schema:
+          type: string
+        example: '16367000000086010'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - taxes
+      operationId: get_tax_group
+      summary: Get a tax group
+      description: Retrieve details of a specific tax group.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxGroupResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.tax.READ
+
+  # ==================== EXPENSE CATEGORIES ====================
+  /expensecategories:
+    post:
+      tags:
+        - expense-categories
+      operationId: create_expense_category
+      summary: Create an expense category
+      description: Create a new expense category.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseCategoryRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCategoryResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensecategory.CREATE
+    get:
+      tags:
+        - expense-categories
+      operationId: list_expense_categories
+      summary: List expense categories
+      description: List all expense categories.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+        - name: filter_by
+          in: query
+          description: Filter by status (Status.Inactive, Status.All)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCategoriesListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensecategory.READ
+
+  /expensecategories/{expense_category_id}:
+    parameters:
+      - name: expense_category_id
+        in: path
+        required: true
+        description: Unique identifier of the expense category.
+        schema:
+          type: string
+        example: '16367000000000400'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - expense-categories
+      operationId: get_expense_category
+      summary: Get an expense category
+      description: Retrieve details of a specific expense category.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCategoryResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensecategory.READ
+    put:
+      tags:
+        - expense-categories
+      operationId: update_expense_category
+      summary: Update an expense category
+      description: Update details of an expense category.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExpenseCategoryRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCategoryResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensecategory.UPDATE
+    delete:
+      tags:
+        - expense-categories
+      operationId: delete_expense_category
+      summary: Delete an expense category
+      description: Delete an expense category.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensecategory.DELETE
+
+  /expensecategories/{expense_category_id}/show:
+    parameters:
+      - name: expense_category_id
+        in: path
+        required: true
+        description: Unique identifier of the expense category.
+        schema:
+          type: string
+        example: '16367000000000400'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - expense-categories
+      operationId: enable_expense_category
+      summary: Enable an expense category
+      description: Mark an expense category as active.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensecategory.CREATE
+
+  /expensecategories/{expense_category_id}/hide:
+    parameters:
+      - name: expense_category_id
+        in: path
+        required: true
+        description: Unique identifier of the expense category.
+        schema:
+          type: string
+        example: '16367000000000400'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - expense-categories
+      operationId: disable_expense_category
+      summary: Disable an expense category
+      description: Mark an expense category as inactive.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.expensecategory.CREATE
+
+  # ==================== CUSTOMERS ====================
+  /contacts:
+    post:
+      tags:
+        - customers
+      operationId: create_customer
+      summary: Create a customer
+      description: Create a new customer/contact.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.contacts.CREATE
+    get:
+      tags:
+        - customers
+      operationId: list_customers
+      summary: List customers
+      description: List all customers/contacts.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomersListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.customer.READ
+
+  /contacts/{customer_id}:
+    parameters:
+      - name: customer_id
+        in: path
+        required: true
+        description: Unique identifier of the customer.
+        schema:
+          type: string
+        example: '27927000000075081'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - customers
+      operationId: get_customer
+      summary: Get a customer
+      description: Retrieve details of a specific customer.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.customer.READ
+    put:
+      tags:
+        - customers
+      operationId: update_customer
+      summary: Update a customer
+      description: Update details of a customer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.customer.UPDATE
+    delete:
+      tags:
+        - customers
+      operationId: delete_customer
+      summary: Delete a customer
+      description: Delete a customer.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.contacts.DELETE
+
+  # ==================== PROJECTS ====================
+  /projects:
+    post:
+      tags:
+        - projects
+      operationId: create_project
+      summary: Create a project
+      description: Create a new project.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.project.CREATE
+    get:
+      tags:
+        - projects
+      operationId: list_projects
+      summary: List projects
+      description: List all projects.
+      parameters:
+        - $ref: '#/components/parameters/organization_id'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectsListResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.project.READ
+
+  /projects/{project_id}:
+    parameters:
+      - name: project_id
+        in: path
+        required: true
+        description: Unique identifier of the project.
+        schema:
+          type: string
+        example: '27927000001243001'
+      - $ref: '#/components/parameters/organization_id'
+    get:
+      tags:
+        - projects
+      operationId: get_project
+      summary: Get a project
+      description: Retrieve details of a specific project.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.project.READ
+    put:
+      tags:
+        - projects
+      operationId: update_project
+      summary: Update a project
+      description: Update details of a project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.project.UPDATE
+    delete:
+      tags:
+        - projects
+      operationId: delete_project
+      summary: Delete a project
+      description: Delete a project.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.project.DELETE
+
+  /projects/{project_id}/active:
+    parameters:
+      - name: project_id
+        in: path
+        required: true
+        description: Unique identifier of the project.
+        schema:
+          type: string
+        example: '27927000001243001'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - projects
+      operationId: activate_project
+      summary: Activate a project
+      description: Mark a project as active.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.project.CREATE
+
+  /projects/{project_id}/inactive:
+    parameters:
+      - name: project_id
+        in: path
+        required: true
+        description: Unique identifier of the project.
+        schema:
+          type: string
+        example: '27927000001243001'
+      - $ref: '#/components/parameters/organization_id'
+    post:
+      tags:
+        - projects
+      operationId: deactivate_project
+      summary: Deactivate a project
+      description: Mark a project as inactive.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+      security:
+        - Zoho_Auth:
+            - ZohoExpense.project.CREATE
+
 components:
   parameters:
     organization_id:
@@ -212,639 +1757,413 @@ components:
       schema:
         type: string
       example: '10234695'
+    page:
+      name: page
+      in: query
+      description: Page number to be fetched. Default value is 1.
+      schema:
+        type: integer
+        default: 1
+      example: 1
+    per_page:
+      name: per_page
+      in: query
+      description: Number of records to be fetched per page. Default value is 200.
+      schema:
+        type: integer
+        default: 200
+      example: 200
+
   schemas:
-    gendoc-attributes-schema:
-      $ref: '#/components/schemas/expenses-response'
-    expenses-response:
+    # ==================== COMMON ====================
+    MessageResponse:
       type: object
       properties:
-        expense_id:
-          $ref: '#/components/schemas/expense_id'
-        total:
-          $ref: '#/components/schemas/total'
-        bcy_total:
-          $ref: '#/components/schemas/bcy_total'
-        is_billable:
-          $ref: '#/components/schemas/is_billable'
-        is_reimbursable:
-          $ref: '#/components/schemas/is_reimbursable'
-        date:
-          $ref: '#/components/schemas/date'
-        currency_id:
-          $ref: '#/components/schemas/currency_id'
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: Operation successful.
+
+    CustomField:
+      type: object
+      properties:
+        customfield_id:
+          type: string
+          description: Unique ID for the custom field
+          example: '16367000000277001'
+        label:
+          type: string
+          description: Label of the custom field
+          example: Other Name
+        value:
+          type: string
+          description: Value of the custom field
+          example: Trip
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: '123 Main St'
+        city:
+          type: string
+          example: 'New York'
+        state:
+          type: string
+          example: 'NY'
+        country:
+          type: string
+          example: 'USA'
+        zip:
+          type: string
+          example: '10001'
+
+    # ==================== ORGANIZATION ====================
+    CreateOrganizationRequest:
+      type: object
+      required:
+        - name
+        - currency_code
+        - time_zone
+        - portal_name
+      properties:
+        name:
+          type: string
+          description: Organization name
+          example: ACME Corp
         currency_code:
-          $ref: '#/components/schemas/currency_code'
-        exchange_rate:
-          $ref: '#/components/schemas/exchange_rate'
-        is_inclusive_tax:
-          $ref: '#/components/schemas/is_inclusive_tax'
-        customer_id:
-          $ref: '#/components/schemas/customer_id'
-        customer_name:
-          $ref: '#/components/schemas/customer_name'
-        project_id:
-          $ref: '#/components/schemas/project_id'
-        project_name:
-          $ref: '#/components/schemas/project_name'
-        paid_through_account_id:
-          $ref: '#/components/schemas/paid_through_account_id'
-        paid_through_account_name:
-          $ref: '#/components/schemas/paid_through_account_name'
-        created_time:
-          $ref: '#/components/schemas/created_time'
-        last_modified_time:
-          $ref: '#/components/schemas/last_modified_time'
-        status:
-          $ref: '#/components/schemas/status'
-        merchant_id:
-          $ref: '#/components/schemas/merchant_id'
-        merchant_name:
-          $ref: '#/components/schemas/merchant_name'
-        report_id:
-          $ref: '#/components/schemas/report_id'
-        report_name:
-          $ref: '#/components/schemas/report_name'
-        mileage_type:
-          $ref: '#/components/schemas/mileage_type'
-        due_days:
-          $ref: '#/components/schemas/due_days'
-        is_expired:
-          $ref: '#/components/schemas/is_expired'
-        gl_code:
-          $ref: '#/components/schemas/gl_code'
-        payment_mode:
-          $ref: '#/components/schemas/payment_mode'
-        attendees:
-          $ref: '#/components/schemas/attendees'
+          type: string
+          description: Standard currency code
+          example: USD
+        time_zone:
+          type: string
+          description: Geographic location timezone
+          example: America/New_York
+        portal_name:
+          type: string
+          description: Portal identifier (4-30 chars, alphanumeric)
+          example: acmecorp
+        fiscal_year_start_month:
+          type: string
+          description: Business financial year start
+          example: january
+        date_format:
+          type: string
+          description: Date representation format
+          example: MM/dd/yyyy
+        language_code:
+          type: string
+          description: Language preference
+          example: en
+        industry_type:
+          type: string
+          description: Business category
+          example: Technology
+        address:
+          $ref: '#/components/schemas/Address'
+
+    UpdateOrganizationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Organization name
+        fiscal_year_start_month:
+          type: string
+        time_zone:
+          type: string
+        date_format:
+          type: string
+        language_code:
+          type: string
+        contact_name:
+          type: string
+        phone:
+          type: string
+        fax:
+          type: string
+        website:
+          type: string
+        email:
+          type: string
+        currency_id:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
         custom_fields:
-          $ref: '#/components/schemas/custom_fields'
-        line_items:
-          $ref: '#/components/schemas/line_items'
-    expense_id:
-      description: Unique ID for expense. This is used as an identifier.
-      type: integer
-      format: int64
-      example: '16367000000083065'
-    date:
-      description: Date of the expense.
-      type: string
-      example: '2017-02-21'
-    category_name:
-      description: Name of the expense category.
-      type: string
-      example: Office Supplies
-    category_id:
-      description: Unique ID for expense category.
-      type: integer
-      format: int64
-      example: '16367000000000400'
-    description:
-      description: Description about the line item.
-      type: string
-      example: Necessary Purchase
-    created_by:
-      description: Unique ID of the person who created the expense.
-      type: integer
-      format: int64
-      example: '16367000000074021'
-    created_by_name:
-      description: Name of the person who created the expense.
-      type: string
-      example: PATRICIA
-    employee_number:
-      description: Employee Number.
-      type: string
-      example: E001
-    currency_id:
-      description: Unique ID for currency.
-      type: integer
-      format: int64
-      example: '16367000000000097'
-    currency_code:
-      description: Currency code.
-      type: string
-      example: USD
-    paid_through_account_id:
-      description: Unique ID for the paid through account.
-      type: integer
-      format: int64
-      example: '16367000000036003'
-    paid_through_account_name:
-      description: Name of the paid through account.
-      type: string
-      example: Employee Reimbursements
-    bcy_total:
-      description: Total in base currency.
-      type: number
-      format: double
-      example: 13900.79
-    bcy_subtotal:
-      description: Sub total in base currency.
-      type: number
-      format: double
-      example: 13900.79
-    total:
-      description: Total.
-      type: number
-      format: double
-      example: 207.65
-    total_without_tax:
-      description: Total excluding tax.
-      type: number
-      format: double
-      example: 207.65
-    is_billable:
-      description: Whether the expense is billable. It can either be <code>true</code> or <code>false</code>.
-      type: boolean
-      example: true
-    is_reimbursable:
-      description: Whether the expense is reimbursable. It can either be <code>true</code> or <code>false</code>.
-      type: boolean
-      example: false
-    reference_number:
-      description: Reference number of the expense.
-      type: string
-      example: DD145
-    due_days:
-      description: Number of days till the due date.
-      type: string
-      example: Due in 15 days
-    merchant_id:
-      description: Unique ID for merchant.
-      type: integer
-      format: int64
-      example: '16367000000074027'
-    merchant_name:
-      description: Name of the merchant.
-      type: string
-      example: ABS Solutions
-    status:
-      description: Status of the expense report with which the expense is associated.
-      type: string
-      example: submitted
-    created_time:
-      description: Time when the expense was created.
-      type: string
-      example: 2017-02-21T18:33:12+0530
-    last_modified_time:
-      description: Time when the expense was last modified.
-      type: string
-      example: 2017-02-21T18:42:46+0530
-    receipt_name:
-      description: Receipt name.
-      type: string
-      example: receipt1.jpg
-    report_id:
-      description: Unique ID for report.
-      type: integer
-      format: int64
-      example: '16367000000083075'
-    mileage_type:
-      description: Mileage type. Possible values can be <code>non_mileage</code> or <code>manual</code> or <code>odometer</code> or <code>gps</code> or <code>imaps</code> or <code>gmaps</code> or <code>wmaps</code>.
-      type: string
-      example: non_mileage
-    report_name:
-      description: Name of the expense report.
-      type: string
-      example: Purchase
-    is_receipt_only:
-      description: Whether the expense is a receipt only expense.
-      type: string
-      example: false
-    distance:
-      description: Distance travelled.
-      type: number
-      format: double
-      example: 0
-    per_diem_rate:
-      description: Allowance per day.
-      type: number
-      format: double
-      example: 0
-    per_diem_days:
-      description: No of days for which per diem is applied.
-      type: number
-      format: double
-      example: 0
-    per_diem_id:
-      description: Unique id for per diem.
-      type: integer
-      format: int64
-      example: ''
-    per_diem_name:
-      description: Name of the per diem.
-      type: string
-      example: ''
-    expense_type:
-      description: Type of expense.Possible values can be <code>non_mileage</code> or <code>manual</code> or <code>per_diem</code>.
-      type: string
-      example: non_mileage
-    location:
-      description: Location.
-      type: string
-      example: Washington
-    receipt_type:
-      description: Receipt type.Possible values can be <code>jpg</code> or <code>png</code>.
-      type: string
-      example: jpg
-    policy_violated:
-      description: Whether expense policies are violated. It can either be <code>true</code> or <code>false</code>.
-      type: boolean
-      example: false
-    comments_count:
-      description: Number of comments.
-      type: integer
-      example: 0
-    report_status:
-      description: Status of the expense report.
-      type: string
-      example: submitted
-    price_precision:
-      description: Precise amount upto n decimal points.
-      type: integer
-      example: 2
-    mileage_rate:
-      description: Mileage rate.
-      type: number
-      format: double
-      example: 0
-    mileage_unit:
-      description: Mileage unit.
-      type: string
-      example: km
-    receipt_status:
-      description: Status of the receipt.
-      type: string
-      example: processed
-    is_uncategorized:
-      description: Whether the expense is uncategorized. It can either be <code>true</code> or <code>false</code>.
-      type: boolean
-      example: false
-    is_expired:
-      description: Whether the expense is expired. It can either be <code>true</code> or <code>false</code>.
-      type: boolean
-      example: false
-    gl_code:
-      description: A unique reference code for the category.
-      type: string
-      example: LG001
-    exchange_rate:
-      description: Exchange rate.
-      type: number
-      format: double
-      example: 66.943366
-    start_reading:
-      description: Start reading of the odometer.
-      type: string
-      example: ''
-    end_reading:
-      description: End reading of the odometer.
-      type: string
-      example: ''
-    payment_mode:
-      description: Payment mode.
-      type: string
-      example: Check
-    customer_id:
-      description: Unique ID for the customer.
-      type: integer
-      format: int64
-      example: '27927000000075081'
-    customer_name:
-      description: Name of the customer.
-      type: string
-      example: ACME Corp.
-    customfield_id:
-      description: Unique Id for the Custom Field.
-      type: integer
-      format: int64
-      example: '16367000000277001'
-    label:
-      description: Label of the Custom Field.
-      type: string
-      example: Other Name
-    value:
-      description: Value of the Custom Field.
-      type: string
-      example: Trip
-    custom_fields:
-      description: Custom Fields.
-      type: array
-      items:
-        type: object
-        properties:
-          customfield_id:
-            $ref: '#/components/schemas/customfield_id'
-          label:
-            $ref: '#/components/schemas/label'
-          value:
-            $ref: '#/components/schemas/value'
-    project_id:
-      description: Unique ID for the project.
-      type: integer
-      format: int64
-      example: '27927000001243001'
-    project_name:
-      description: Name of the project.
-      type: string
-      example: Coffee Research
-    transaction_description:
-      description: Description about the transaction
-      type: string
-      example: ''
-    tax_id:
-      description: Unique ID for tax.
-      type: integer
-      format: int64
-      example: '16367000000086001'
-    tax_name:
-      description: Name of the tax.
-      type: string
-      example: Sales Tax
-    tax_percentage:
-      description: Tax percentage.
-      type: number
-      format: double
-      example: 2
-    amount:
-      description: Amount.
-      type: number
-      format: double
-      example: 207.65
-    is_inclusive_tax:
-      description: Whether the expense amount is inclusive of tax. It can either be <code>true</code> or <code>false</code>.
-      type: boolean
-      example: false
-    vehicle_type:
-      description: Type of vehicle.(UK Edition Only)
-      type: string
-      example: Bike
-    vehicle_id:
-      description: Unique id for the Vehicle.
-      type: string
-      example: '17456000000078029'
-    engine_capacity_range:
-      description: Range of the Engine Capacity.Possible values can be <code>less_than_1400cc</code> or <code>between_1401cc_and_1600cc</code> or <code>between_1601cc_and_2000cc</code> or <code>more_than_2000cc</code>.(UK Edition Only)
-      type: string
-      example: between_1401cc_and_1600cc
-    fuel_type:
-      description: Type of Fuel.Possible values can be <code>petrol</code> or <code>lpg</code> or <code>diesel</code>.(UK Edition Only)
-      type: string
-      example: lpg
-    is_personal:
-      description: Whether the expense personal. It can either be <code>true</code> or <code>false</code>.
-      type: boolean
-      example: false
-    policy_id:
-      description: Unique id for the policy.
-      type: integer
-      format: int64
-      example: '16367000000092011'
-    policy_name:
-      description: Name of the policy.
-      type: string
-      example: LIC
-    file_name:
-      description: Name of the receipt file.
-      type: string
-      example: receipt1.jpg
-    file_size_formatted:
-      description: Formatted file size of receipt.
-      type: string
-      example: 71.8 KB
-    attachment_order:
-      description: Order of the attached receipt.
-      type: integer
-      example: 1
-    document_id:
-      description: Unique id for the receipt.
-      type: integer
-      format: int64
-      example: '16367000000083071'
-    reimbursement_reference:
-      description: Reference id for Reimbursement.
-      type: integer
-      format: int64
-      example: ''
-    reimbursement_date:
-      description: Date for Reimbursement.
-      type: string
-      example: ''
-    reimbursement_paid_through_account_id:
-      description: Account id of the Reimbursement Payment.
-      type: integer
-      format: int64
-      example: ''
-    reimbursement_paid_through_account_name:
-      description: Account Name of the Reimbursement.
-      type: string
-      example: ''
-    reimbursement_currency_id:
-      description: Unique ID for Reimbursement currency.
-      type: integer
-      format: int64
-      example: ''
-    reimbursement_currency_code:
-      description: Currency code for Reimbursement.
-      type: string
-      example: ''
-    date_start:
-      description: Starting Date
-      type: string
-      example: '2015-12-31'
-    date_end:
-      description: Ending Date
-      type: string
-      example: '2016-01-31'
-    user_id:
-      description: Unique ID for user.
-      type: integer
-      format: int64
-      example: '27927000001331015'
-    documents:
-      description: Documents attached with expense.
-      type: array
-      items:
-        type: object
-        properties:
-          file_name:
-            $ref: '#/components/schemas/file_name'
-          file_size_formatted:
-            $ref: '#/components/schemas/file_size_formatted'
-          attachment_order:
-            $ref: '#/components/schemas/attachment_order'
-          document_id:
-            $ref: '#/components/schemas/document_id'
-    line_item_id:
-      description: Unique ID for the line item.
-      type: integer
-      format: int64
-      example: '16367000000354007'
-    item_order:
-      description: Order of the line item.
-      type: integer
-      example: 0
-    item_total:
-      description: Total amount for the line item.
-      type: number
-      format: double
-      example: 207.65
-    attendee_id:
-      description: Unique ID for the attendee.
-      type: integer
-      format: int64
-      example: '16367000000104051'
-    department_id:
-      description: Unique ID of the department.
-      type: integer
-      format: int64
-      example: '16367000000093001'
-    department_name:
-      description: Name of the department.
-      type: string
-      example: Finance
-    name:
-      description: Name of the User.
-      type: string
-      example: Will Smith
-    email:
-      description: Email Id of the User.
-      type: string
-      example: will.smith@gmail.com
-    attendees:
-      description: Attendees for the expense.
-      type: array
-      items:
-        type: object
-        properties:
-          attendee_id:
-            $ref: '#/components/schemas/attendee_id'
-          user_id:
-            $ref: '#/components/schemas/user_id'
-          department_id:
-            $ref: '#/components/schemas/department_id'
-          department_name:
-            $ref: '#/components/schemas/department_name'
-          name:
-            $ref: '#/components/schemas/name'
-          employee_number:
-            $ref: '#/components/schemas/employee_number'
-          customer_id:
-            $ref: '#/components/schemas/customer_id'
-          email:
-            $ref: '#/components/schemas/email'
-    tag_option_id:
-      description: Unique ID for Tag option generated by the server.
-      type: integer
-      format: int64
-      example: '16367000000225001'
-    tag_name:
-      description: Name of the Tag.
-      type: string
-      example: Tag 1
-    tag_id:
-      description: Unique ID for Tag generated by the server.
-      type: integer
-      format: int64
-      example: '16367000000000301'
-    tag_option_name:
-      description: Name of the Tag Option.
-      type: string
-      example: Option 1
-    tags:
-      description: Tags associated with the Line Item.
-      type: array
-      items:
-        type: object
-        required:
-          - tag_id
-          - tag_option_id
-        properties:
-          tag_id:
-            $ref: '#/components/schemas/tag_id'
-          tag_name:
-            $ref: '#/components/schemas/tag_name'
-          tag_option_id:
-            $ref: '#/components/schemas/tag_option_id'
-          tag_option_name:
-            $ref: '#/components/schemas/tag_option_name'
-    line_items:
-      description: Line Items of the expense.
-      type: array
-      items:
-        type: object
-        properties:
-          line_item_id:
-            $ref: '#/components/schemas/line_item_id'
-          category_id:
-            $ref: '#/components/schemas/category_id'
-          category_name:
-            $ref: '#/components/schemas/category_name'
-          description:
-            $ref: '#/components/schemas/description'
-          tax_id:
-            $ref: '#/components/schemas/tax_id'
-          tax_name:
-            $ref: '#/components/schemas/tax_name'
-          tax_percentage:
-            $ref: '#/components/schemas/tax_percentage'
-          item_total:
-            $ref: '#/components/schemas/item_total'
-          amount:
-            $ref: '#/components/schemas/amount'
-          item_order:
-            $ref: '#/components/schemas/item_order'
-          tags:
-            $ref: '#/components/schemas/tags'
-    duplicate_expense_id:
-      description: Unique ID of the expense to be merged.
-      type: integer
-      format: int64
-      example: '16367000000083070'
-    receipt:
-      description: File Path of the Receipt to be uploaded.
-      type: string
-      example: '@/receipt.jpg'
-    create-an-expense-request:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    Organization:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          example: '10234695'
+        name:
+          type: string
+          example: ACME Corp
+        contact_name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          example: admin@acme.com
+        plan_type:
+          type: string
+          example: professional
+        currency_code:
+          type: string
+          example: USD
+        currency_id:
+          type: string
+          example: '16367000000000097'
+        time_zone:
+          type: string
+          example: America/New_York
+        date_format:
+          type: string
+          example: MM/dd/yyyy
+        fiscal_year_start_month:
+          type: string
+          example: january
+        language_code:
+          type: string
+          example: en
+        phone:
+          type: string
+        fax:
+          type: string
+        website:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        account_created_date:
+          type: string
+          example: '2020-01-15'
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    OrganizationResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        organization:
+          $ref: '#/components/schemas/Organization'
+
+    OrganizationsListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+
+    # ==================== EXPENSE ====================
+    LineItem:
+      type: object
+      properties:
+        line_item_id:
+          type: string
+          description: Unique ID for the line item
+          example: '16367000000354007'
+        category_id:
+          type: string
+          description: Unique ID for expense category
+          example: '16367000000000400'
+        category_name:
+          type: string
+          description: Name of the expense category
+          example: Office Supplies
+        description:
+          type: string
+          description: Description about the line item
+          example: Necessary Purchase
+        tax_id:
+          type: string
+          description: Unique ID for tax
+          example: '16367000000086001'
+        tax_name:
+          type: string
+          description: Name of the tax
+          example: Sales Tax
+        tax_percentage:
+          type: number
+          format: double
+          description: Tax percentage
+          example: 2
+        amount:
+          type: number
+          format: double
+          description: Amount
+          example: 207.65
+        item_total:
+          type: number
+          format: double
+          description: Total amount for the line item
+          example: 207.65
+        item_order:
+          type: integer
+          description: Order of the line item
+          example: 0
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+
+    Tag:
+      type: object
+      properties:
+        tag_id:
+          type: string
+          description: Unique ID for tag
+          example: '16367000000000301'
+        tag_name:
+          type: string
+          description: Name of the tag
+          example: Tag 1
+        tag_option_id:
+          type: string
+          description: Unique ID for tag option
+          example: '16367000000225001'
+        tag_option_name:
+          type: string
+          description: Name of the tag option
+          example: Option 1
+
+    Attendee:
+      type: object
+      properties:
+        attendee_id:
+          type: string
+          description: Unique ID for the attendee
+          example: '16367000000104051'
+        user_id:
+          type: string
+          description: Unique ID for user
+          example: '27927000001331015'
+        name:
+          type: string
+          description: Name of the user
+          example: Will Smith
+        email:
+          type: string
+          description: Email ID of the user
+          example: will.smith@gmail.com
+        department_id:
+          type: string
+          description: Unique ID of the department
+          example: '16367000000093001'
+        department_name:
+          type: string
+          description: Name of the department
+          example: Finance
+        employee_number:
+          type: string
+          description: Employee number
+          example: E001
+
+    Document:
+      type: object
+      properties:
+        document_id:
+          type: string
+          description: Unique ID for the receipt
+          example: '16367000000083071'
+        file_name:
+          type: string
+          description: Name of the receipt file
+          example: receipt1.jpg
+        file_size_formatted:
+          type: string
+          description: Formatted file size of receipt
+          example: 71.8 KB
+        attachment_order:
+          type: integer
+          description: Order of the attached receipt
+          example: 1
+
+    CreateExpenseRequest:
       type: object
       required:
         - currency_id
         - line_items
       properties:
         currency_id:
-          $ref: '#/components/schemas/currency_id'
+          type: string
+          description: Unique ID for currency
+          example: '16367000000000097'
         date:
-          $ref: '#/components/schemas/date'
-        is_reimbursable:
-          $ref: '#/components/schemas/is_reimbursable'
+          type: string
+          format: date
+          description: Date of the expense
+          example: '2017-02-21'
         paid_through_account_id:
-          $ref: '#/components/schemas/paid_through_account_id'
-        distance:
-          $ref: '#/components/schemas/distance'
+          type: string
+          description: Unique ID for the paid through account
+          example: '16367000000036003'
         merchant_id:
-          $ref: '#/components/schemas/merchant_id'
+          type: string
+          description: Unique ID for merchant
+          example: '16367000000074027'
         report_id:
-          $ref: '#/components/schemas/report_id'
+          type: string
+          description: Unique ID for report
+          example: '16367000000083075'
         payment_mode:
-          $ref: '#/components/schemas/payment_mode'
+          type: string
+          description: Payment mode
+          example: Check
         customer_id:
-          $ref: '#/components/schemas/customer_id'
+          type: string
+          description: Unique ID for the customer
+          example: '27927000000075081'
         project_id:
-          $ref: '#/components/schemas/project_id'
+          type: string
+          description: Unique ID for the project
+          example: '27927000001243001'
+        distance:
+          type: number
+          format: double
+          description: Distance travelled (for mileage expenses)
+          example: 0
+        is_reimbursable:
+          type: boolean
+          description: Whether the expense is reimbursable
+          example: false
         is_billable:
-          $ref: '#/components/schemas/is_billable'
+          type: boolean
+          description: Whether the expense is billable
+          example: true
         is_inclusive_tax:
-          $ref: '#/components/schemas/is_inclusive_tax'
+          type: boolean
+          description: Whether the expense amount is inclusive of tax
+          example: false
         attendees:
-          description: Attendees for the expense.
           type: array
           items:
             type: object
             properties:
               user_id:
-                $ref: '#/components/schemas/user_id'
+                type: string
         custom_fields:
-          description: Custom Fields.
           type: array
           items:
             type: object
@@ -853,11 +2172,10 @@ components:
               - value
             properties:
               customfield_id:
-                $ref: '#/components/schemas/customfield_id'
+                type: string
               value:
-                $ref: '#/components/schemas/value'
+                type: string
         line_items:
-          description: Line Items of the expense.
           type: array
           items:
             type: object
@@ -866,235 +2184,65 @@ components:
               - amount
             properties:
               category_id:
-                $ref: '#/components/schemas/category_id'
+                type: string
               amount:
-                $ref: '#/components/schemas/amount'
+                type: number
+                format: double
               tax_id:
-                $ref: '#/components/schemas/tax_id'
+                type: string
               description:
-                $ref: '#/components/schemas/description'
+                type: string
               tags:
-                $ref: '#/components/schemas/tags'
-    create-an-expense-response:
-      type: object
-      properties:
-        code:
-          type: integer
-          example: 0
-          readOnly: true
-        message:
-          type: string
-          example: The expense has been recorded.
-          readOnly: true
-        expenses:
-          type: array
-          items:
-            $ref: '#/components/schemas/expenses-response'
-    list-all-expenses-response:
-      type: object
-      properties:
-        code:
-          type: integer
-          example: 0
-          readOnly: true
-        message:
-          type: string
-          example: success
-          readOnly: true
-        expenses:
-          type: array
-          items:
-            type: object
-            properties:
-              expense_id:
-                $ref: '#/components/schemas/expense_id'
-              date:
-                $ref: '#/components/schemas/date'
-              description:
-                $ref: '#/components/schemas/description'
-              created_by:
-                $ref: '#/components/schemas/created_by'
-              created_by_name:
-                $ref: '#/components/schemas/created_by_name'
-              employee_number:
-                $ref: '#/components/schemas/employee_number'
-              currency_id:
-                $ref: '#/components/schemas/currency_id'
-              currency_code:
-                $ref: '#/components/schemas/currency_code'
-              paid_through_account_id:
-                $ref: '#/components/schemas/paid_through_account_id'
-              paid_through_account_name:
-                $ref: '#/components/schemas/paid_through_account_name'
-              bcy_total:
-                $ref: '#/components/schemas/bcy_total'
-              bcy_subtotal:
-                $ref: '#/components/schemas/bcy_subtotal'
-              total:
-                $ref: '#/components/schemas/total'
-              total_without_tax:
-                $ref: '#/components/schemas/total_without_tax'
-              is_billable:
-                $ref: '#/components/schemas/is_billable'
-              is_reimbursable:
-                $ref: '#/components/schemas/is_reimbursable'
-              reference_number:
-                $ref: '#/components/schemas/reference_number'
-              due_days:
-                $ref: '#/components/schemas/due_days'
-              merchant_id:
-                $ref: '#/components/schemas/merchant_id'
-              merchant_name:
-                $ref: '#/components/schemas/merchant_name'
-              status:
-                $ref: '#/components/schemas/status'
-              created_time:
-                $ref: '#/components/schemas/created_time'
-              last_modified_time:
-                $ref: '#/components/schemas/last_modified_time'
-              receipt_name:
-                $ref: '#/components/schemas/receipt_name'
-              report_id:
-                $ref: '#/components/schemas/report_id'
-              mileage_type:
-                $ref: '#/components/schemas/mileage_type'
-              report_name:
-                $ref: '#/components/schemas/report_name'
-              is_receipt_only:
-                $ref: '#/components/schemas/is_receipt_only'
-              distance:
-                $ref: '#/components/schemas/distance'
-              per_diem_rate:
-                $ref: '#/components/schemas/per_diem_rate'
-              per_diem_days:
-                $ref: '#/components/schemas/per_diem_days'
-              per_diem_id:
-                $ref: '#/components/schemas/per_diem_id'
-              per_diem_name:
-                $ref: '#/components/schemas/per_diem_name'
-              expense_type:
-                $ref: '#/components/schemas/expense_type'
-              location:
-                $ref: '#/components/schemas/location'
-              receipt_type:
-                $ref: '#/components/schemas/receipt_type'
-              policy_violated:
-                $ref: '#/components/schemas/policy_violated'
-              comments_count:
-                $ref: '#/components/schemas/comments_count'
-              report_status:
-                $ref: '#/components/schemas/report_status'
-              price_precision:
-                $ref: '#/components/schemas/price_precision'
-              mileage_rate:
-                $ref: '#/components/schemas/mileage_rate'
-              mileage_unit:
-                $ref: '#/components/schemas/mileage_unit'
-              receipt_status:
-                $ref: '#/components/schemas/receipt_status'
-              is_uncategorized:
-                $ref: '#/components/schemas/is_uncategorized'
-              is_expired:
-                $ref: '#/components/schemas/is_expired'
-              gl_code:
-                $ref: '#/components/schemas/gl_code'
-              exchange_rate:
-                $ref: '#/components/schemas/exchange_rate'
-              start_reading:
-                $ref: '#/components/schemas/start_reading'
-              end_reading:
-                $ref: '#/components/schemas/end_reading'
-              payment_mode:
-                $ref: '#/components/schemas/payment_mode'
-              customer_id:
-                $ref: '#/components/schemas/customer_id'
-              customer_name:
-                $ref: '#/components/schemas/customer_name'
-              custom_fields:
-                $ref: '#/components/schemas/custom_fields'
-              project_id:
-                $ref: '#/components/schemas/project_id'
-              project_name:
-                $ref: '#/components/schemas/project_name'
-              transaction_description:
-                $ref: '#/components/schemas/transaction_description'
-              tax_id:
-                $ref: '#/components/schemas/tax_id'
-              tax_name:
-                $ref: '#/components/schemas/tax_name'
-              tax_percentage:
-                $ref: '#/components/schemas/tax_percentage'
-              amount:
-                $ref: '#/components/schemas/amount'
-              is_inclusive_tax:
-                $ref: '#/components/schemas/is_inclusive_tax'
-              vehicle_type:
-                $ref: '#/components/schemas/vehicle_type'
-              vehicle_id:
-                $ref: '#/components/schemas/vehicle_id'
-              fuel_type:
-                $ref: '#/components/schemas/fuel_type'
-              engine_capacity_range:
-                $ref: '#/components/schemas/engine_capacity_range'
-              is_personal:
-                $ref: '#/components/schemas/is_personal'
-              policy_id:
-                $ref: '#/components/schemas/policy_id'
-              policy_name:
-                $ref: '#/components/schemas/policy_name'
-              documents:
-                $ref: '#/components/schemas/documents'
-              reimbursement_reference:
-                $ref: '#/components/schemas/reimbursement_reference'
-              reimbursement_date:
-                $ref: '#/components/schemas/reimbursement_date'
-              reimbursement_paid_through_account_id:
-                $ref: '#/components/schemas/reimbursement_paid_through_account_id'
-              reimbursement_paid_through_account_name:
-                $ref: '#/components/schemas/reimbursement_paid_through_account_name'
-              reimbursement_currency_id:
-                $ref: '#/components/schemas/reimbursement_currency_id'
-              reimbursement_currency_code:
-                $ref: '#/components/schemas/reimbursement_currency_code'
-    update-an-expense-request:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - tag_id
+                    - tag_option_id
+                  properties:
+                    tag_id:
+                      type: string
+                    tag_option_id:
+                      type: string
+
+    UpdateExpenseRequest:
       type: object
       required:
         - line_items
       properties:
-        paid_through_account_id:
-          $ref: '#/components/schemas/paid_through_account_id'
-        date:
-          $ref: '#/components/schemas/date'
-        is_reimbursable:
-          $ref: '#/components/schemas/is_reimbursable'
         currency_id:
-          $ref: '#/components/schemas/currency_id'
+          type: string
+        date:
+          type: string
+          format: date
+        paid_through_account_id:
+          type: string
         merchant_id:
-          $ref: '#/components/schemas/merchant_id'
+          type: string
         report_id:
-          $ref: '#/components/schemas/report_id'
+          type: string
         payment_mode:
-          $ref: '#/components/schemas/payment_mode'
+          type: string
         customer_id:
-          $ref: '#/components/schemas/customer_id'
+          type: string
         project_id:
-          $ref: '#/components/schemas/project_id'
+          type: string
+        is_reimbursable:
+          type: boolean
         is_billable:
-          $ref: '#/components/schemas/is_billable'
+          type: boolean
         is_inclusive_tax:
-          $ref: '#/components/schemas/is_inclusive_tax'
+          type: boolean
         attendees:
-          description: Attendees for the expense.
           type: array
           items:
             type: object
             properties:
               attendee_id:
-                $ref: '#/components/schemas/attendee_id'
+                type: string
               user_id:
-                $ref: '#/components/schemas/user_id'
+                type: string
         custom_fields:
-          description: Custom Fields.
           type: array
           items:
             type: object
@@ -1103,125 +2251,1662 @@ components:
               - value
             properties:
               customfield_id:
-                $ref: '#/components/schemas/customfield_id'
+                type: string
               value:
-                $ref: '#/components/schemas/value'
+                type: string
         line_items:
-          description: Line Items of the expense.
           type: array
           items:
             type: object
             properties:
               line_item_id:
-                $ref: '#/components/schemas/line_item_id'
+                type: string
               category_id:
-                $ref: '#/components/schemas/category_id'
-              description:
-                $ref: '#/components/schemas/description'
-              tax_id:
-                $ref: '#/components/schemas/tax_id'
+                type: string
               amount:
-                $ref: '#/components/schemas/amount'
+                type: number
+                format: double
+              tax_id:
+                type: string
+              description:
+                type: string
               item_order:
-                $ref: '#/components/schemas/item_order'
+                type: integer
               tags:
-                $ref: '#/components/schemas/tags'
-    update-an-expense-response:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - tag_id
+                    - tag_option_id
+                  properties:
+                    tag_id:
+                      type: string
+                    tag_option_id:
+                      type: string
+
+    Expense:
+      type: object
+      properties:
+        expense_id:
+          type: string
+          description: Unique ID for expense
+          example: '16367000000083065'
+        date:
+          type: string
+          format: date
+          description: Date of the expense
+          example: '2017-02-21'
+        description:
+          type: string
+          description: Description about the expense
+        total:
+          type: number
+          format: double
+          description: Total amount
+          example: 207.65
+        bcy_total:
+          type: number
+          format: double
+          description: Total in base currency
+          example: 13900.79
+        total_without_tax:
+          type: number
+          format: double
+          description: Total excluding tax
+          example: 207.65
+        is_billable:
+          type: boolean
+          description: Whether the expense is billable
+          example: true
+        is_reimbursable:
+          type: boolean
+          description: Whether the expense is reimbursable
+          example: false
+        currency_id:
+          type: string
+          example: '16367000000000097'
+        currency_code:
+          type: string
+          example: USD
+        exchange_rate:
+          type: number
+          format: double
+          example: 66.943366
+        is_inclusive_tax:
+          type: boolean
+          example: false
+        customer_id:
+          type: string
+          example: '27927000000075081'
+        customer_name:
+          type: string
+          example: ACME Corp.
+        project_id:
+          type: string
+          example: '27927000001243001'
+        project_name:
+          type: string
+          example: Coffee Research
+        paid_through_account_id:
+          type: string
+          example: '16367000000036003'
+        paid_through_account_name:
+          type: string
+          example: Employee Reimbursements
+        merchant_id:
+          type: string
+          example: '16367000000074027'
+        merchant_name:
+          type: string
+          example: ABS Solutions
+        report_id:
+          type: string
+          example: '16367000000083075'
+        report_name:
+          type: string
+          example: Purchase
+        status:
+          type: string
+          description: Status of the expense
+          example: submitted
+        mileage_type:
+          type: string
+          enum: [non_mileage, manual, odometer, gps, imaps, gmaps, wmaps]
+          example: non_mileage
+        expense_type:
+          type: string
+          enum: [non_mileage, mileage, per_diem]
+          example: non_mileage
+        payment_mode:
+          type: string
+          example: Check
+        gl_code:
+          type: string
+          description: A unique reference code for the category
+          example: LG001
+        due_days:
+          type: string
+          description: Number of days till the due date
+          example: Due in 15 days
+        is_expired:
+          type: boolean
+          example: false
+        policy_violated:
+          type: boolean
+          example: false
+        is_personal:
+          type: boolean
+          example: false
+        created_by:
+          type: string
+          description: Unique ID of the person who created the expense
+          example: '16367000000074021'
+        created_by_name:
+          type: string
+          example: PATRICIA
+        created_time:
+          type: string
+          description: Time when the expense was created
+          example: '2017-02-21T18:33:12+0530'
+        last_modified_time:
+          type: string
+          description: Time when the expense was last modified
+          example: '2017-02-21T18:42:46+0530'
+        attendees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attendee'
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+        line_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineItem'
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+
+    ExpenseResponse:
       type: object
       properties:
         code:
           type: integer
           example: 0
-          readOnly: true
         message:
           type: string
-          example: Expense information has been updated.
-          readOnly: true
+          example: The expense has been recorded.
         expense:
-          type: object
-          properties:
-            expense_id:
-              $ref: '#/components/schemas/expense_id'
-            total:
-              $ref: '#/components/schemas/total'
-            bcy_total:
-              $ref: '#/components/schemas/bcy_total'
-            is_billable:
-              $ref: '#/components/schemas/is_billable'
-            is_reimbursable:
-              $ref: '#/components/schemas/is_reimbursable'
-            date:
-              $ref: '#/components/schemas/date'
-            currency_id:
-              $ref: '#/components/schemas/currency_id'
-            currency_code:
-              $ref: '#/components/schemas/currency_code'
-            exchange_rate:
-              $ref: '#/components/schemas/exchange_rate'
-            is_inclusive_tax:
-              $ref: '#/components/schemas/is_inclusive_tax'
-            customer_id:
-              $ref: '#/components/schemas/customer_id'
-            customer_name:
-              $ref: '#/components/schemas/customer_name'
-            project_id:
-              $ref: '#/components/schemas/project_id'
-            project_name:
-              $ref: '#/components/schemas/project_name'
-            paid_through_account_id:
-              $ref: '#/components/schemas/paid_through_account_id'
-            paid_through_account_name:
-              $ref: '#/components/schemas/paid_through_account_name'
-            created_time:
-              $ref: '#/components/schemas/created_time'
-            last_modified_time:
-              $ref: '#/components/schemas/last_modified_time'
-            status:
-              $ref: '#/components/schemas/status'
-            merchant_id:
-              $ref: '#/components/schemas/merchant_id'
-            merchant_name:
-              $ref: '#/components/schemas/merchant_name'
-            report_id:
-              $ref: '#/components/schemas/report_id'
-            report_name:
-              $ref: '#/components/schemas/report_name'
-            mileage_type:
-              $ref: '#/components/schemas/mileage_type'
-            due_days:
-              $ref: '#/components/schemas/due_days'
-            is_expired:
-              $ref: '#/components/schemas/is_expired'
-            gl_code:
-              $ref: '#/components/schemas/gl_code'
-            payment_mode:
-              $ref: '#/components/schemas/payment_mode'
-            attendees:
-              $ref: '#/components/schemas/attendees'
-            policy_name:
-              $ref: '#/components/schemas/policy_name'
-            custom_fields:
-              $ref: '#/components/schemas/custom_fields'
-            line_items:
-              $ref: '#/components/schemas/line_items'
-    merge-expenses-response:
+          $ref: '#/components/schemas/Expense'
+
+    ExpensesListResponse:
       type: object
       properties:
         code:
           type: integer
           example: 0
-          readOnly: true
         message:
           type: string
-          example: Expenses merged successfully.
-          readOnly: true
+          example: success
+        expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
+    PageContext:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 200
+        has_more_page:
+          type: boolean
+          example: false
+
+    # ==================== EXPENSE REPORT ====================
+    CreateExpenseReportRequest:
+      type: object
+      required:
+        - report_name
+        - start_date
+        - end_date
+      properties:
+        report_name:
+          type: string
+          description: Name of the expense report
+          example: Q1 Business Travel
+        start_date:
+          type: string
+          format: date
+          description: Start date of the report period
+          example: '2017-01-01'
+        end_date:
+          type: string
+          format: date
+          description: End date of the report period
+          example: '2017-03-31'
+        description:
+          type: string
+          description: Description of the report
+        customer_id:
+          type: string
+        project_id:
+          type: string
+        expenses:
+          type: array
+          description: Array of expense IDs to include
+          items:
+            type: string
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+        tags:
+          type: array
+          items:
+            type: object
+            properties:
+              tag_id:
+                type: string
+              tag_option_id:
+                type: string
+
+    UpdateExpenseReportRequest:
+      type: object
+      properties:
+        report_name:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        description:
+          type: string
+        customer_id:
+          type: string
+        project_id:
+          type: string
+        expenses:
+          type: array
+          items:
+            type: string
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    ReimburseRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          description: Notes for the reimbursement
+        date:
+          type: string
+          format: date
+          description: Date of reimbursement
+        amount:
+          type: number
+          format: double
+          description: Amount to reimburse
+        reference_number:
+          type: string
+          description: Reference number for the reimbursement
+        currency_id:
+          type: string
+          description: Currency ID for the reimbursement
+
+    ExpenseReport:
+      type: object
+      properties:
+        report_id:
+          type: string
+          description: Unique ID for the report
+          example: '16367000000083075'
+        report_number:
+          type: string
+          description: Report number
+          example: ER-00001
+        report_name:
+          type: string
+          description: Name of the expense report
+          example: Q1 Business Travel
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, submitted, approved, rejected, reimbursed, recalled]
+          example: submitted
+        start_date:
+          type: string
+          format: date
+          example: '2017-01-01'
+        end_date:
+          type: string
+          format: date
+          example: '2017-03-31'
+        total:
+          type: number
+          format: double
+          description: Total amount of the report
+          example: 1500.00
+        bcy_total:
+          type: number
+          format: double
+          description: Total in base currency
+        reimbursable_total:
+          type: number
+          format: double
+          description: Total reimbursable amount
+        non_reimbursable_total:
+          type: number
+          format: double
+          description: Total non-reimbursable amount
+        currency_id:
+          type: string
+        currency_code:
+          type: string
+          example: USD
+        customer_id:
+          type: string
+        customer_name:
+          type: string
+        project_id:
+          type: string
+        project_name:
+          type: string
+        submitted_by:
+          type: string
+          description: User ID who submitted the report
+        submitted_by_name:
+          type: string
+        submitted_date:
+          type: string
+          format: date
+        approved_date:
+          type: string
+          format: date
+        reimbursed_date:
+          type: string
+          format: date
+        approver_id:
+          type: string
+        approver_name:
+          type: string
+        created_time:
+          type: string
+        last_modified_time:
+          type: string
+        expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    ExpenseReportResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        expense_report:
+          $ref: '#/components/schemas/ExpenseReport'
+
+    ExpenseReportsListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        expense_reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseReport'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
+    ApprovalHistory:
+      type: object
+      properties:
+        approver_id:
+          type: string
+        approver_name:
+          type: string
+        action:
+          type: string
+          enum: [submitted, approved, rejected, reimbursed]
+        comments:
+          type: string
+        action_date:
+          type: string
+
+    ApprovalHistoryResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        approval_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApprovalHistory'
+
+    # ==================== TRIP ====================
+    CreateTripRequest:
+      type: object
+      required:
+        - is_international
+        - destination_country
+        - trip_number
+      properties:
+        trip_number:
+          type: string
+          description: Trip identifier
+          example: TR-00001
+        is_international:
+          type: boolean
+          description: Whether the trip is international
+          example: true
+        destination_country:
+          type: string
+          description: Destination country
+          example: United States
+        business_purpose:
+          type: string
+          description: Purpose of the trip
+          example: Client meeting
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        currency_id:
+          type: string
+        exchange_rate:
+          type: number
+          format: double
+        budget_amount:
+          type: number
+          format: double
+        customer_id:
+          type: string
+        project_id:
+          type: string
+        is_billable:
+          type: boolean
+        is_visa_required:
+          type: boolean
+        meal_preference:
+          type: string
+          enum: [vegetarian, non_vegetarian, vegan]
+        seat_preference:
+          type: string
+          enum: [window, aisle, middle]
+        attendees:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    UpdateTripRequest:
+      type: object
+      properties:
+        trip_number:
+          type: string
+        is_international:
+          type: boolean
+        destination_country:
+          type: string
+        business_purpose:
+          type: string
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        currency_id:
+          type: string
+        exchange_rate:
+          type: number
+          format: double
+        budget_amount:
+          type: number
+          format: double
+        customer_id:
+          type: string
+        project_id:
+          type: string
+        is_billable:
+          type: boolean
+        is_visa_required:
+          type: boolean
+        meal_preference:
+          type: string
+        seat_preference:
+          type: string
+        attendees:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    Trip:
+      type: object
+      properties:
+        trip_id:
+          type: string
+          description: Unique ID for the trip
+          example: '16367000000123456'
+        trip_number:
+          type: string
+          example: TR-00001
+        status:
+          type: string
+          enum: [draft, submitted, approved, rejected, closed, cancelled]
+          example: submitted
+        is_international:
+          type: boolean
+          example: true
+        destination_country:
+          type: string
+          example: United States
+        business_purpose:
+          type: string
+          example: Client meeting
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        currency_id:
+          type: string
+        currency_code:
+          type: string
+        budget_amount:
+          type: number
+          format: double
+        actual_amount:
+          type: number
+          format: double
+        customer_id:
+          type: string
+        customer_name:
+          type: string
+        project_id:
+          type: string
+        project_name:
+          type: string
+        is_billable:
+          type: boolean
+        is_visa_required:
+          type: boolean
+        meal_preference:
+          type: string
+        seat_preference:
+          type: string
+        submitted_by:
+          type: string
+        submitted_by_name:
+          type: string
+        approver_id:
+          type: string
+        approver_name:
+          type: string
+        created_time:
+          type: string
+        last_modified_time:
+          type: string
+        attendees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attendee'
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+
+    TripResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        trip:
+          $ref: '#/components/schemas/Trip'
+
+    TripsListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        trips:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trip'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
+    # ==================== USER ====================
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+        - user_role
+      properties:
+        name:
+          type: string
+          description: Name of the user
+          example: John Doe
+        email:
+          type: string
+          format: email
+          description: Email address of the user
+          example: john.doe@example.com
+        user_role:
+          type: string
+          description: Role of the user
+          enum: [admin, submitter, approver, finance_manager]
+          example: submitter
+        approval_amount_limit:
+          type: number
+          format: double
+          description: Maximum amount the user can approve
+        submission_amount_limit:
+          type: number
+          format: double
+          description: Maximum amount the user can submit
+        department_name:
+          type: string
+          description: Name of the department
+          example: Finance
+        designation_name:
+          type: string
+          description: Job title/designation
+          example: Senior Analyst
+        mobile:
+          type: string
+          description: Mobile number
+          example: '+1234567890'
+        employee_number:
+          type: string
+          description: Employee number
+          example: E001
+        default_approver_id:
+          type: string
+          description: Default approver's user ID
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        user_role:
+          type: string
+        approval_amount_limit:
+          type: number
+          format: double
+        submission_amount_limit:
+          type: number
+          format: double
+        department_name:
+          type: string
+        designation_name:
+          type: string
+        mobile:
+          type: string
+        employee_number:
+          type: string
+        default_approver_id:
+          type: string
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: Unique ID for user
+          example: '27927000001331015'
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          example: john.doe@example.com
+        status:
+          type: string
+          enum: [active, inactive]
+          example: active
+        user_role:
+          type: string
+          example: submitter
+        role_id:
+          type: string
+        department_id:
+          type: string
+        department_name:
+          type: string
+          example: Finance
+        designation_name:
+          type: string
+          example: Senior Analyst
+        employee_number:
+          type: string
+          example: E001
+        mobile:
+          type: string
+        approval_amount_limit:
+          type: number
+          format: double
+        submission_amount_limit:
+          type: number
+          format: double
+        default_approver_id:
+          type: string
+        default_approver_name:
+          type: string
+        created_time:
+          type: string
+        last_modified_time:
+          type: string
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    UserResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        user:
+          $ref: '#/components/schemas/User'
+
+    UsersListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
+    # ==================== CURRENCY ====================
+    CreateCurrencyRequest:
+      type: object
+      required:
+        - currency_code
+        - currency_format
+      properties:
+        currency_code:
+          type: string
+          description: Currency code (ISO 4217)
+          example: EUR
+        currency_name:
+          type: string
+          description: Full name of the currency
+          example: Euro
+        currency_symbol:
+          type: string
+          description: Symbol representation
+          example: '€'
+        price_precision:
+          type: integer
+          description: Decimal places for amounts
+          example: 2
+        currency_format:
+          type: string
+          description: Format template
+          example: '1,234,567.89'
+
+    UpdateCurrencyRequest:
+      type: object
+      required:
+        - currency_format
+      properties:
+        currency_symbol:
+          type: string
+        price_precision:
+          type: integer
+        currency_format:
+          type: string
+
+    Currency:
+      type: object
+      properties:
+        currency_id:
+          type: string
+          description: Unique ID for currency
+          example: '16367000000000097'
+        currency_code:
+          type: string
+          example: USD
+        currency_name:
+          type: string
+          example: US Dollar
+        currency_symbol:
+          type: string
+          example: '$'
+        price_precision:
+          type: integer
+          example: 2
+        currency_format:
+          type: string
+          example: '1,234,567.89'
+        is_base_currency:
+          type: boolean
+          description: Whether this is the base currency
+          example: true
+        exchange_rate:
+          type: number
+          format: double
+          description: Exchange rate relative to base currency
+          example: 1.0
+
+    CurrencyResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        currency:
+          $ref: '#/components/schemas/Currency'
+
+    CurrenciesListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        currencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Currency'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
+    # ==================== TAX ====================
+    CreateTaxRequest:
+      type: object
+      required:
+        - tax_name
+        - tax_percentage
+      properties:
+        tax_name:
+          type: string
+          description: Tax designation
+          example: Sales Tax
+        tax_percentage:
+          type: number
+          format: double
+          description: Tax percentage value
+          example: 7.5
+        tax_type:
+          type: string
+          description: Type of tax
+          enum: [tax, compound_tax, tax_group]
+          example: tax
+        is_value_added:
+          type: boolean
+          description: VAT indicator (Canada only)
+          example: false
+        tax_authority_name:
+          type: string
+          description: Tax authority name (required for Canada)
+          example: Canada Revenue Agency
+
+    UpdateTaxRequest:
+      type: object
+      properties:
+        tax_name:
+          type: string
+        tax_percentage:
+          type: number
+          format: double
+        tax_type:
+          type: string
+          enum: [tax, compound_tax, tax_group]
+        is_value_added:
+          type: boolean
+        tax_authority_name:
+          type: string
+
+    Tax:
+      type: object
+      properties:
+        tax_id:
+          type: string
+          description: Unique ID for tax
+          example: '16367000000086001'
+        tax_name:
+          type: string
+          example: Sales Tax
+        tax_percentage:
+          type: number
+          format: double
+          example: 7.5
+        tax_type:
+          type: string
+          enum: [tax, compound_tax, tax_group]
+          example: tax
+        is_value_added:
+          type: boolean
+        tax_authority_name:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+
+    TaxResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        tax:
+          $ref: '#/components/schemas/Tax'
+
+    TaxesListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tax'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
+    TaxGroup:
+      type: object
+      properties:
+        tax_group_id:
+          type: string
+          example: '16367000000086010'
+        tax_group_name:
+          type: string
+          example: Combined Tax
+        tax_group_percentage:
+          type: number
+          format: double
+          example: 12.5
+        taxes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tax'
+
+    TaxGroupResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        tax_group:
+          $ref: '#/components/schemas/TaxGroup'
+
+    # ==================== EXPENSE CATEGORY ====================
+    CreateExpenseCategoryRequest:
+      type: object
+      required:
+        - category_name
+      properties:
+        category_name:
+          type: string
+          description: Category name
+          example: Office Supplies
+        gl_code:
+          type: string
+          description: Unique accounting code
+          example: OS001
+        description:
+          type: string
+          description: Category description
+        maximum_allowed_amount:
+          type: number
+          format: double
+          description: Maximum expense amount allowed
+          example: 500.00
+        receipt_required_amount:
+          type: number
+          format: double
+          description: Amount above which receipt is required
+          example: 25.00
+        flat_amount:
+          type: number
+          format: double
+          description: Flat amount for the category
+        parent_account_id:
+          type: string
+          description: Parent category ID for hierarchical organization
+        is_description_required:
+          type: boolean
+          description: Whether description is mandatory
+          example: false
+        is_receipt_required:
+          type: boolean
+          description: Whether receipt is always required
+          example: false
+
+    UpdateExpenseCategoryRequest:
+      type: object
+      properties:
+        category_name:
+          type: string
+        gl_code:
+          type: string
+        description:
+          type: string
+        maximum_allowed_amount:
+          type: number
+          format: double
+        receipt_required_amount:
+          type: number
+          format: double
+        flat_amount:
+          type: number
+          format: double
+        parent_account_id:
+          type: string
+        is_description_required:
+          type: boolean
+        is_receipt_required:
+          type: boolean
+
+    ExpenseCategory:
+      type: object
+      properties:
+        category_id:
+          type: string
+          description: Unique ID for expense category
+          example: '16367000000000400'
+        category_name:
+          type: string
+          example: Office Supplies
+        gl_code:
+          type: string
+          example: OS001
+        description:
+          type: string
+        is_enabled:
+          type: boolean
+          description: Whether the category is active
+          example: true
+        is_description_required:
+          type: boolean
+          example: false
+        is_receipt_required:
+          type: boolean
+          example: false
+        maximum_allowed_amount:
+          type: number
+          format: double
+          example: 500.00
+        receipt_required_amount:
+          type: number
+          format: double
+          example: 25.00
+        flat_amount:
+          type: number
+          format: double
+        parent_account_id:
+          type: string
+        parent_category_name:
+          type: string
+        created_time:
+          type: string
+        last_modified_time:
+          type: string
+
+    ExpenseCategoryResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        expense_category:
+          $ref: '#/components/schemas/ExpenseCategory'
+
+    ExpenseCategoriesListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        expense_categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseCategory'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
+    # ==================== CUSTOMER ====================
+    ContactPerson:
+      type: object
+      properties:
+        contact_person_id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        mobile:
+          type: string
+        is_primary_contact:
+          type: boolean
+
+    CreateCustomerRequest:
+      type: object
+      required:
+        - contact_name
+      properties:
+        contact_name:
+          type: string
+          description: Customer name
+          example: ACME Corp
+        company_name:
+          type: string
+          description: Company name
+          example: ACME Corporation
+        website:
+          type: string
+          example: 'https://acme.com'
+        email:
+          type: string
+          format: email
+          example: contact@acme.com
+        phone:
+          type: string
+          example: '+1234567890'
+        mobile:
+          type: string
+        twitter:
+          type: string
+        facebook:
+          type: string
+        notes:
+          type: string
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        contact_persons:
+          type: array
+          items:
+            type: object
+            properties:
+              first_name:
+                type: string
+              last_name:
+                type: string
+              email:
+                type: string
+              phone:
+                type: string
+              mobile:
+                type: string
+              is_primary_contact:
+                type: boolean
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    UpdateCustomerRequest:
+      type: object
+      properties:
+        contact_name:
+          type: string
+        company_name:
+          type: string
+        website:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        mobile:
+          type: string
+        twitter:
+          type: string
+        facebook:
+          type: string
+        notes:
+          type: string
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    Customer:
+      type: object
+      properties:
+        contact_id:
+          type: string
+          description: Unique ID for the customer
+          example: '27927000000075081'
+        contact_name:
+          type: string
+          example: ACME Corp
+        company_name:
+          type: string
+          example: ACME Corporation
+        contact_type:
+          type: string
+          example: customer
+        status:
+          type: string
+          enum: [active, inactive]
+          example: active
+        currency_code:
+          type: string
+          example: USD
+        website:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        mobile:
+          type: string
+        twitter:
+          type: string
+        facebook:
+          type: string
+        notes:
+          type: string
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        contact_persons:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactPerson'
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+        created_time:
+          type: string
+        last_modified_time:
+          type: string
+
+    CustomerResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        contact:
+          $ref: '#/components/schemas/Customer'
+
+    CustomersListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
+    # ==================== PROJECT ====================
+    ProjectUser:
+      type: object
+      properties:
+        user_id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        rate:
+          type: number
+          format: double
+        role:
+          type: string
+
+    CreateProjectRequest:
+      type: object
+      required:
+        - project_name
+        - customer_id
+      properties:
+        project_name:
+          type: string
+          description: Project name
+          example: Website Redesign
+        customer_id:
+          type: string
+          description: Associated customer ID
+          example: '27927000000075081'
+        description:
+          type: string
+          description: Project description
+        billing_type:
+          type: string
+          description: Billing method
+          enum: [based_on_task_hours, based_on_staff_hours, based_on_project_hours, fixed_cost_for_project]
+          default: based_on_task_hours
+        budget_type:
+          type: string
+          enum: [hours_per_staff, hours_per_task, total_project_hours, total_project_cost]
+        budget_amount:
+          type: number
+          format: double
+        show_to_all_users:
+          type: boolean
+          description: Whether project is visible to all users
+          example: true
+        project_head_id:
+          type: string
+          description: User ID of the project head
+        users:
+          type: array
+          description: Users assigned to the project
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              rate:
+                type: number
+                format: double
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        project_name:
+          type: string
+        customer_id:
+          type: string
+        description:
+          type: string
+        billing_type:
+          type: string
+          enum: [based_on_task_hours, based_on_staff_hours, based_on_project_hours, fixed_cost_for_project]
+        budget_type:
+          type: string
+          enum: [hours_per_staff, hours_per_task, total_project_hours, total_project_cost]
+        budget_amount:
+          type: number
+          format: double
+        show_to_all_users:
+          type: boolean
+        project_head_id:
+          type: string
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              rate:
+                type: number
+                format: double
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+
+    Project:
+      type: object
+      properties:
+        project_id:
+          type: string
+          description: Unique ID for the project
+          example: '27927000001243001'
+        project_name:
+          type: string
+          example: Website Redesign
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+          example: active
+        customer_id:
+          type: string
+        customer_name:
+          type: string
+        currency_code:
+          type: string
+          example: USD
+        billing_type:
+          type: string
+        budget_type:
+          type: string
+        budget_amount:
+          type: number
+          format: double
+        show_to_all_users:
+          type: boolean
+        project_head_id:
+          type: string
+        project_head_name:
+          type: string
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectUser'
+        custom_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+        created_time:
+          type: string
+        last_modified_time:
+          type: string
+
+    ProjectResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        project:
+          $ref: '#/components/schemas/Project'
+
+    ProjectsListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: success
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        page_context:
+          $ref: '#/components/schemas/PageContext'
+
   securitySchemes:
     Zoho_Auth:
       type: oauth2
       flows:
-        implicit:
+        authorizationCode:
           authorizationUrl: https://accounts.zoho.com/oauth/v2/auth
+          tokenUrl: https://accounts.zoho.com/oauth/v2/token
           scopes:
-            ZohoExpense.expense.CREATE: Create expense
-            ZohoExpense.expense.READ: Read expense
-            ZohoExpense.expense.UPDATE: Update expense
+            # Organization scopes
+            ZohoExpense.orgsettings.CREATE: Create organization settings
+            ZohoExpense.orgsettings.READ: Read organization settings
+            ZohoExpense.orgsettings.UPDATE: Update organization settings
+            # Expense scopes
+            ZohoExpense.expense.CREATE: Create expenses
+            ZohoExpense.expense.READ: Read expenses
+            ZohoExpense.expense.UPDATE: Update expenses
+            ZohoExpense.expense.DELETE: Delete expenses
+            # Expense report scopes
+            ZohoExpense.expensereport.CREATE: Create expense reports
+            ZohoExpense.expensereport.READ: Read expense reports
+            ZohoExpense.expensereport.UPDATE: Update expense reports
+            ZohoExpense.expensereport.DELETE: Delete expense reports
+            # Approval scopes
+            ZohoExpense.approval.CREATE: Approve/reject reports and trips
+            ZohoExpense.approval.READ: Read approval information
+            # Trip scopes
+            ZohoExpense.triprequest.CREATE: Create trip requests
+            ZohoExpense.triprequest.READ: Read trip requests
+            ZohoExpense.triprequest.UPDATE: Update trip requests
+            ZohoExpense.triprequest.DELETE: Delete trip requests
+            # User scopes
+            ZohoExpense.users.CREATE: Create users
+            ZohoExpense.users.READ: Read users
+            ZohoExpense.users.UPDATE: Update users
+            ZohoExpense.users.DELETE: Delete users
+            # Currency scopes
+            ZohoExpense.currency.CREATE: Create currencies
+            ZohoExpense.currency.READ: Read currencies
+            ZohoExpense.currency.UPDATE: Update currencies
+            ZohoExpense.currency.DELETE: Delete currencies
+            # Tax scopes
+            ZohoExpense.tax.CREATE: Create taxes
+            ZohoExpense.tax.READ: Read taxes
+            ZohoExpense.tax.UPDATE: Update taxes
+            ZohoExpense.tax.DELETE: Delete taxes
+            # Expense category scopes
+            ZohoExpense.expensecategory.CREATE: Create expense categories
+            ZohoExpense.expensecategory.READ: Read expense categories
+            ZohoExpense.expensecategory.UPDATE: Update expense categories
+            ZohoExpense.expensecategory.DELETE: Delete expense categories
+            # Customer/Contact scopes
+            ZohoExpense.contacts.CREATE: Create contacts
+            ZohoExpense.customer.READ: Read customers
+            ZohoExpense.customer.UPDATE: Update customers
+            ZohoExpense.contacts.DELETE: Delete contacts
+            # Project scopes
+            ZohoExpense.project.CREATE: Create projects
+            ZohoExpense.project.READ: Read projects
+            ZohoExpense.project.UPDATE: Update projects
+            ZohoExpense.project.DELETE: Delete projects
+            # Full access scope
+            ZohoExpense.fullaccess.all: Full access to all Zoho Expense APIs
